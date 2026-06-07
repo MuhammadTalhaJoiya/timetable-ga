@@ -2,7 +2,9 @@ import csv
 import io
 
 from flask import Flask, render_template, redirect, url_for, request, flash, Response
-from models import init_db, get_all, save_assignments, insert_record, get_last_assignments
+from models import (init_db, get_all, save_assignments, insert_record,
+                    get_last_assignments, get_all_teacher_availability,
+                    set_teacher_availability)
 from ga_engine import GeneticAlgorithm
 
 app = Flask(__name__)
@@ -33,6 +35,7 @@ def index():
         teachers=get_all('teachers'),
         rooms=get_all('rooms'),
         timeslots=get_all('timeslots'),
+        availability=get_all_teacher_availability(),
     )
 
 
@@ -91,7 +94,20 @@ def admin():
         teachers=get_all('teachers'),
         rooms=get_all('rooms'),
         timeslots=get_all('timeslots'),
+        availability=get_all_teacher_availability(),
     )
+
+
+@app.route('/admin/availability', methods=['POST'])
+def admin_availability():
+    teacher_id  = request.form.get('teacher_id', type=int)
+    timeslot_ids = list(map(int, request.form.getlist('timeslot_ids')))
+    if not teacher_id:
+        flash('Invalid teacher.', 'error')
+        return redirect(url_for('admin'))
+    set_teacher_availability(teacher_id, timeslot_ids)
+    flash('Availability updated.', 'success')
+    return redirect(url_for('admin'))
 
 
 # ── GET /export ───────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import random
 import copy
-from models import get_all
+from models import get_all, get_teachers_by_timeslot, get_availability_by_teacher
 
 # ── GA hyper-parameters ───────────────────────────────────────────────────────
 POPULATION_SIZE  = 30
@@ -29,8 +29,6 @@ class GeneticAlgorithm:
         self.rooms     = get_all('rooms')
         self.timeslots = get_all('timeslots')
 
-        # B2 fix: raise early so routes get a clean ValueError instead of a
-        # cryptic IndexError buried inside random.choice() during population init.
         if not self.courses:
             raise ValueError('No courses found. Add at least one course before running the GA.')
         if not self.teachers:
@@ -40,16 +38,21 @@ class GeneticAlgorithm:
         if not self.timeslots:
             raise ValueError('No timeslots found. Add at least one timeslot before running the GA.')
 
+        # {timeslot_id: [teacher_dicts]} — used when building/mutating genes
+        self._avail_by_slot = get_teachers_by_timeslot()
+        # {teacher_id: set(timeslot_ids)} — used in penalty to catch crossover violations
+        self._avail_by_teacher = get_availability_by_teacher()
+
     # ── chromosome construction ───────────────────────────────────────────────
 
     def _random_gene(self, course):
-        # Each gene represents one scheduled class: a course assigned to a
-        # (teacher, room, timeslot) triple chosen uniformly at random.
+        timeslot = random.choice(self.timeslots)
+        available = self._avail_by_slot.get(timeslot['id']) or self.teachers
         return {
             'course':   course,
-            'teacher':  random.choice(self.teachers),
+            'teacher':  random.choice(available),
             'room':     random.choice(self.rooms),
-            'timeslot': random.choice(self.timeslots),
+            'timeslot': timeslot,
         }
 
     def _random_chromosome(self):
@@ -65,35 +68,35 @@ class GeneticAlgorithm:
         n = len(chromosome)
 
         for i in range(n):
-            gi  = chromosome[i]
+            gi   = chromosome[i]
             ts_i = gi['timeslot']['id']
+
+            # Hard constraint: teacher not available for this timeslot.
+            # Crossover can pair a teacher with a timeslot they didn't sign up for;
+            # penalising it here drives evolution back to valid assignments.
+            avail = self._avail_by_teacher.get(gi['teacher']['id'])
+            if avail is not None and ts_i not in avail:
+                penalty += HARD
 
             for j in range(i + 1, n):
                 gj   = chromosome[j]
                 ts_j = gj['timeslot']['id']
 
-                # Hard constraints: two classes sharing a timeslot create a clash.
-                # Each violation adds HARD=10 to the penalty so the fitness
-                # function strongly penalises hard conflicts over soft ones.
                 if ts_i == ts_j:
                     if gi['teacher']['id'] == gj['teacher']['id']:
                         penalty += HARD          # teacher clash
-
                     if gi['room']['id'] == gj['room']['id']:
                         penalty += HARD          # room clash
-
                     if gi['course']['id'] == gj['course']['id']:
                         penalty += HARD          # same course scheduled twice
 
-                # Soft constraint: back-to-back (same teacher, same day, no gap).
-                # Penalised with SOFT=2 — discouraged but not forbidden.
+                # Soft constraint: back-to-back classes for the same teacher.
                 if (gi['teacher']['id'] == gj['teacher']['id']
                         and gi['timeslot']['day'] == gj['timeslot']['day']):
                     if gi['timeslot']['start_time'] < gj['timeslot']['start_time']:
                         earlier, later = gi, gj
                     else:
                         earlier, later = gj, gi
-
                     if earlier['timeslot']['end_time'] == later['timeslot']['start_time']:
                         penalty += SOFT
 
@@ -126,20 +129,20 @@ class GeneticAlgorithm:
         return p1[:point] + p2[point:]
 
     def _mutate(self, chromosome):
-        # Per-gene mutation at MUTATION_RATE probability.
-        # Equally likely to reassign timeslot, room, OR teacher so that all
-        # three types of hard clash have a direct escape path.
-        # (Restricting to timeslot/room only means teacher clashes can never
-        # be fixed by diversity injection — only by lucky timeslot moves.)
         for gene in chromosome:
             if random.random() < MUTATION_RATE:
                 r = random.random()
                 if r < 1 / 3:
+                    # New timeslot → re-pick teacher from those available for it.
                     gene['timeslot'] = random.choice(self.timeslots)
+                    available = self._avail_by_slot.get(gene['timeslot']['id']) or self.teachers
+                    gene['teacher'] = random.choice(available)
                 elif r < 2 / 3:
                     gene['room'] = random.choice(self.rooms)
                 else:
-                    gene['teacher'] = random.choice(self.teachers)
+                    # Pick a teacher who is available for the current timeslot.
+                    available = self._avail_by_slot.get(gene['timeslot']['id']) or self.teachers
+                    gene['teacher'] = random.choice(available)
         return chromosome
 
     # ── main loop ─────────────────────────────────────────────────────────────

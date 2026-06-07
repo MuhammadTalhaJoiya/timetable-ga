@@ -70,14 +70,9 @@
           <label>Teacher Name
             <input type="text" name="name" placeholder="e.g. Dr. Smith" required />
           </label>
-          <label>Available Slot IDs
-            <input type="text" name="available_slots"
-                   placeholder="e.g. 1,3,5,7" required
-                   pattern="^[\d]+(,[\d]+)*$"
-                   title="Comma-separated timeslot IDs, e.g. 1,3,5" />
-            <small>Comma-separated timeslot IDs from the table on the right</small>
-          </label>
         </div>
+        <p class="hint">New teachers are available for all timeslots by default.<br>
+          Use the <strong>Edit Availability</strong> section below to restrict them.</p>
         <button type="submit" class="btn-admin">Add Teacher</button>
       </form>
     </div>
@@ -91,13 +86,79 @@
           <tr>
             <td>{{ t.id }}</td>
             <td>{{ t.name }}</td>
-            <td><span class="badge">{{ t.available_slots }}</span></td>
+            <td>
+              <span class="badge">
+                {{ availability.get(t.id, [])|length }} / {{ timeslots|length }}
+              </span>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
+  <!-- ── Teacher Availability ───────────────────────────────────────────────── -->
+  {% if teachers and timeslots %}
+  <div class="card" style="margin-bottom:2rem;">
+    <h2>Edit Teacher Availability</h2>
+    <p class="hint">Select a teacher, then check the timeslots they are available for.</p>
+
+    <label for="teacherSelect" style="font-weight:600;">Teacher</label>
+    <select id="teacherSelect" onchange="showAvail(this.value)"
+            style="display:block;margin:.4rem 0 1.2rem;padding:.4rem .6rem;border:1px solid #ccc;border-radius:6px;font-size:.9rem;">
+      {% for t in teachers %}
+      <option value="{{ t.id }}">{{ t.name }}</option>
+      {% endfor %}
+    </select>
+
+    {% for t in teachers %}
+    <div id="avail-{{ t.id }}" class="avail-panel" style="display:none;">
+      <form method="POST" action="{{ url_for('admin_availability') }}">
+        <input type="hidden" name="teacher_id" value="{{ t.id }}" />
+
+        <div class="avail-grid">
+          {% set teacher_slots = availability.get(t.id, []) %}
+          {% for day in ['Monday','Tuesday','Wednesday','Thursday','Friday'] %}
+          <div class="avail-day">
+            <strong>{{ day }}</strong>
+            {% for ts in timeslots if ts.day == day %}
+            <label class="avail-check">
+              <input type="checkbox" name="timeslot_ids" value="{{ ts.id }}"
+                     {{ 'checked' if ts.id in teacher_slots }}>
+              {{ ts.start_time }} – {{ ts.end_time }}
+            </label>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" class="btn-admin" style="margin-top:1rem;">Save Availability</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+
+  <style>
+    .hint { font-size:.85rem; color:#666; margin:.3rem 0 .8rem; }
+    .avail-grid { display:flex; gap:1.2rem; flex-wrap:wrap; }
+    .avail-day { display:flex; flex-direction:column; gap:.35rem; min-width:150px; }
+    .avail-day strong { font-size:.8rem; text-transform:uppercase; letter-spacing:.05em;
+                        color:#1e3a8a; margin-bottom:.2rem; }
+    .avail-check { display:flex; align-items:center; gap:.4rem; font-size:.88rem;
+                   cursor:pointer; }
+    .avail-check input { accent-color:#2563eb; }
+  </style>
+  <script>
+    function showAvail(id) {
+      document.querySelectorAll('.avail-panel').forEach(el => el.style.display = 'none');
+      document.getElementById('avail-' + id).style.display = 'block';
+    }
+    // Show the first teacher on load
+    const first = document.getElementById('teacherSelect');
+    if (first) showAvail(first.value);
+  </script>
+  {% endif %}
 
   <!-- ── Rooms ───────────────────────────────────────────────────────────── -->
   <div class="admin-section">

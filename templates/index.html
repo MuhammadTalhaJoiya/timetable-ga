@@ -151,16 +151,16 @@
         <div class="card-body p-0">
           <table class="table table-sm table-hover mb-0">
             <thead class="table-light">
-              <tr><th class="ps-3">Name</th><th>Slots</th></tr>
+              <tr><th class="ps-3">Name</th><th>Available Slots</th></tr>
             </thead>
             <tbody>
               {% for t in teachers %}
               <tr>
                 <td class="ps-3">{{ t.name }}</td>
                 <td>
-                  {% for s in t.available_slots.split(',') %}
-                  <span class="badge bg-secondary bg-opacity-25 text-secondary">{{ s }}</span>
-                  {% endfor %}
+                  <span class="badge bg-primary bg-opacity-10 text-primary">
+                    {{ availability.get(t.id, [])|length }} / {{ timeslots|length }} slots
+                  </span>
                 </td>
               </tr>
               {% endfor %}

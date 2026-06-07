@@ -14,10 +14,6 @@ _INSERT_MAP = {
         'INSERT INTO courses (name, credit_hours) VALUES (?, ?)',
         ['name', 'credit_hours'],
     ),
-    'teachers': (
-        'INSERT INTO teachers (name, available_slots) VALUES (?, ?)',
-        ['name', 'available_slots'],
-    ),
     'rooms': (
         'INSERT INTO rooms (name, capacity) VALUES (?, ?)',
         ['name', 'capacity'],
@@ -47,7 +43,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS teachers (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
             name            TEXT    NOT NULL,
-            available_slots TEXT    NOT NULL
+            available_slots TEXT    NOT NULL DEFAULT ''
         );
         CREATE TABLE IF NOT EXISTS rooms (
             id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,10 +66,24 @@ def init_db():
             fitness     REAL    NOT NULL,
             created_at  TEXT    DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS teacher_availability (
+            teacher_id  INTEGER NOT NULL REFERENCES teachers(id),
+            timeslot_id INTEGER NOT NULL REFERENCES timeslots(id),
+            PRIMARY KEY (teacher_id, timeslot_id)
+        );
     ''')
     cur.execute('SELECT COUNT(*) FROM courses')
     if cur.fetchone()[0] == 0:
         _seed(cur)
+    else:
+        # Migration: if the new table is empty but teachers already exist,
+        # grant all existing teachers availability for every timeslot.
+        cur.execute('SELECT COUNT(*) FROM teacher_availability')
+        if cur.fetchone()[0] == 0:
+            cur.execute('''
+                INSERT OR IGNORE INTO teacher_availability (teacher_id, timeslot_id)
+                SELECT t.id, ts.id FROM teachers t, timeslots ts
+            ''')
     conn.commit()
     conn.close()
 
@@ -94,20 +104,18 @@ def _seed(cur):
             ('Discrete Structure',          3),
         ],
     )
-    # all 20 timeslot IDs available for every teacher
-    all_slots = ','.join(str(i) for i in range(1, 21))
     cur.executemany(
-        'INSERT INTO teachers (name, available_slots) VALUES (?, ?)',
+        'INSERT INTO teachers (name) VALUES (?)',
         [
-            ('Miss Maria',           all_slots),
-            ('Sir Hassan Abbasi',    all_slots),
-            ('Sir Saleem',           all_slots),
-            ('Miss Amna Najeeb',     all_slots),
-            ('Miss Asma Sanam Larik',all_slots),
-            ('Sir Ali Asghar',       all_slots),
-            ('Sir Talha Tariq',      all_slots),
-            ('Sir Asmatullah',       all_slots),
-            ('Sir Naseer',           all_slots),
+            ('Miss Maria',),
+            ('Sir Hassan Abbasi',),
+            ('Sir Saleem',),
+            ('Miss Amna Najeeb',),
+            ('Miss Asma Sanam Larik',),
+            ('Sir Ali Asghar',),
+            ('Sir Talha Tariq',),
+            ('Sir Asmatullah',),
+            ('Sir Naseer',),
         ],
     )
     # Real classroom codes and capacities from the dataset
@@ -146,6 +154,11 @@ def _seed(cur):
             ('Friday',    '13:30', '15:00'),
         ],
     )
+    # Grant all seeded teachers availability for every timeslot by default.
+    cur.execute('''
+        INSERT OR IGNORE INTO teacher_availability (teacher_id, timeslot_id)
+        SELECT t.id, ts.id FROM teachers t, timeslots ts
+    ''')
 
 
 # ── read helpers ──────────────────────────────────────────────────────────────
@@ -221,11 +234,12 @@ def save_assignments(genes, fitness):
 
 def insert_record(table, form_data):
     """
-    Insert one row into `table` using values taken from `form_data`
-    (Flask's request.form or any dict-like).
-    Only tables listed in _INSERT_MAP are accepted.
+    Insert one row into `table` using values taken from `form_data`.
+    Teachers are handled separately (they get full availability by default).
     Returns the new row's id.
     """
+    if table == 'teachers':
+        return _insert_teacher(form_data)
     if table not in _INSERT_MAP:
         raise ValueError(f'Inserts not allowed on table: {table!r}')
     sql, fields = _INSERT_MAP[table]
@@ -240,3 +254,77 @@ def insert_record(table, form_data):
     new_id = cur.lastrowid
     conn.close()
     return new_id
+
+
+def _insert_teacher(form_data):
+    name = (form_data.get('name') or '').strip()
+    if not name:
+        raise ValueError('Teacher name is required.')
+    conn = get_db()
+    cur  = conn.cursor()
+    cur.execute('INSERT INTO teachers (name) VALUES (?)', (name,))
+    teacher_id = cur.lastrowid
+    # Default: available for every timeslot currently in the DB.
+    cur.execute('''
+        INSERT OR IGNORE INTO teacher_availability (teacher_id, timeslot_id)
+        SELECT ?, id FROM timeslots
+    ''', (teacher_id,))
+    conn.commit()
+    conn.close()
+    return teacher_id
+
+
+# ── availability helpers ───────────────────────────────────────────────────────
+
+def get_teachers_by_timeslot():
+    """Return {timeslot_id: [teacher_dict, ...]} for the GA engine."""
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT ta.timeslot_id, t.id, t.name
+        FROM teacher_availability ta
+        JOIN teachers t ON t.id = ta.teacher_id
+    ''').fetchall()
+    conn.close()
+    result: dict = {}
+    for r in rows:
+        result.setdefault(r['timeslot_id'], []).append({'id': r['id'], 'name': r['name']})
+    return result
+
+
+def get_availability_by_teacher():
+    """Return {teacher_id: set(timeslot_id)} for penalty checks in the GA."""
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT teacher_id, timeslot_id FROM teacher_availability'
+    ).fetchall()
+    conn.close()
+    result: dict = {}
+    for r in rows:
+        result.setdefault(r['teacher_id'], set()).add(r['timeslot_id'])
+    return result
+
+
+def get_all_teacher_availability():
+    """Return {teacher_id: [timeslot_id, ...]} for the admin template."""
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT teacher_id, timeslot_id FROM teacher_availability ORDER BY teacher_id'
+    ).fetchall()
+    conn.close()
+    result: dict = {}
+    for r in rows:
+        result.setdefault(r['teacher_id'], []).append(r['timeslot_id'])
+    return result
+
+
+def set_teacher_availability(teacher_id, timeslot_ids):
+    """Replace a teacher's availability with the given list of timeslot IDs."""
+    conn = get_db()
+    cur  = conn.cursor()
+    cur.execute('DELETE FROM teacher_availability WHERE teacher_id = ?', (teacher_id,))
+    cur.executemany(
+        'INSERT INTO teacher_availability (teacher_id, timeslot_id) VALUES (?, ?)',
+        [(teacher_id, tid) for tid in timeslot_ids],
+    )
+    conn.commit()
+    conn.close()
