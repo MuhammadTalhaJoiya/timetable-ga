@@ -328,3 +328,25 @@ def set_teacher_availability(teacher_id, timeslot_ids):
     )
     conn.commit()
     conn.close()
+
+
+# Cascade map: deleting a row in `table` should also clean up these dependent rows.
+_CASCADE = {
+    'courses':   [('assignments', 'course_id')],
+    'teachers':  [('teacher_availability', 'teacher_id'), ('assignments', 'teacher_id')],
+    'rooms':     [('assignments', 'room_id')],
+    'timeslots': [('teacher_availability', 'timeslot_id'), ('assignments', 'timeslot_id')],
+}
+
+
+def delete_record(table, record_id):
+    """Delete one row from `table` and remove any dependent rows in child tables."""
+    if table not in _ALLOWED_TABLES:
+        raise ValueError(f'Deletes not allowed on table: {table!r}')
+    conn = get_db()
+    cur  = conn.cursor()
+    for child_table, fk_col in _CASCADE.get(table, []):
+        cur.execute(f'DELETE FROM {child_table} WHERE {fk_col} = ?', (record_id,))
+    cur.execute(f'DELETE FROM {table} WHERE id = ?', (record_id,))
+    conn.commit()
+    conn.close()

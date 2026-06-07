@@ -4,7 +4,7 @@ import io
 from flask import Flask, render_template, redirect, url_for, request, flash, Response
 from models import (init_db, get_all, save_assignments, insert_record,
                     get_last_assignments, get_all_teacher_availability,
-                    set_teacher_availability)
+                    set_teacher_availability, delete_record)
 from ga_engine import GeneticAlgorithm
 
 app = Flask(__name__)
@@ -139,6 +139,23 @@ def export():
         mimetype='text/csv',
         headers={'Content-Disposition': 'attachment; filename="timetable.csv"'},
     )
+
+
+# ── POST /admin/delete ───────────────────────────────────────────────────────
+
+@app.route('/admin/delete', methods=['POST'])
+def admin_delete():
+    table     = request.form.get('table', '').strip()
+    record_id = request.form.get('id', type=int)
+    if not table or not record_id:
+        flash('Invalid delete request.', 'error')
+        return redirect(url_for('admin'))
+    try:
+        delete_record(table, record_id)
+        flash(f'Record deleted from {table}.', 'success')
+    except ValueError as exc:
+        flash(str(exc), 'error')
+    return redirect(url_for('admin'))
 
 
 # ── POST /admin/add ───────────────────────────────────────────────────────────

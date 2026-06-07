@@ -3,269 +3,157 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Timetable GA – Result</title>
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-        crossorigin="anonymous" />
-  <style>
-    body { background: #f8f9fa; }
-
-    .page-header {
-      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-      color: #fff;
-      padding: 2rem 1rem;
-    }
-    .page-header h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: .25rem; }
-    .page-header p  { opacity: .8; margin: 0; font-size: .95rem; }
-
-    .metric-card { border: none; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
-    .metric-card .metric-val {
-      font-size: 2.2rem;
-      font-weight: 800;
-      line-height: 1;
-    }
-    .metric-card .metric-lbl { font-size: .78rem; text-transform: uppercase;
-                                letter-spacing: .06em; color: #6c757d; margin-top: .3rem; }
-
-    .section-heading {
-      font-size: .72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: #6c757d;
-    }
-
-    /* Timetable */
-    .tbl-schedule th {
-      font-size: .78rem;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      background: #1e3a8a;
-      color: #fff;
-      font-weight: 600;
-      border: none;
-    }
-    .tbl-schedule td { vertical-align: middle; font-size: .9rem; }
-    .tbl-schedule tbody tr:hover { background: #eff6ff; }
-
-    /* Chart container */
-    #chartWrap { position: relative; height: 280px; }
-  </style>
+  <title>Generated Timetable – Timetable GA</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
 
-<!-- ── Navbar ──────────────────────────────────────────────────────────── -->
-<nav class="navbar navbar-dark" style="background:#1e3a8a;">
-  <div class="container">
-    <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
-      &#x1F4C5; Timetable GA
-    </a>
-    <div class="d-flex gap-2">
-      <a href="{{ url_for('admin') }}" class="btn btn-outline-light btn-sm">
-        &#9881; Admin Panel
-      </a>
-    </div>
+<nav class="nav" role="navigation" aria-label="Main navigation">
+  <a href="{{ url_for('index') }}" class="nav-brand">
+    &#x1F4C5; Timetable GA
+  </a>
+  <div class="nav-links">
+    <a href="{{ url_for('admin') }}" class="nav-link">Admin</a>
   </div>
 </nav>
 
-<!-- ── Page Header ─────────────────────────────────────────────────────── -->
-<div class="page-header">
-  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
-    <div>
-      <h1>Generated Timetable</h1>
-      <p>Best result across {{ total_gen }} generations</p>
-    </div>
-    {% if conflicts == 0 %}
-    <span class="badge bg-success fs-6 px-3 py-2">
-      &#10004; No Conflicts
-    </span>
-    {% else %}
-    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
-      &#9888; {{ conflicts }} Conflict{{ 's' if conflicts != 1 }}
-    </span>
-    {% endif %}
-  </div>
-</div>
-
-<div class="container py-4">
-
-  <!-- ── Metric Cards ──────────────────────────────────────────────────── -->
-  <div class="row g-3 mb-4">
-
-    <div class="col-6 col-md-3">
-      <div class="card metric-card p-3 text-center h-100">
-        <div class="metric-val text-primary">{{ fitness }}</div>
-        <div class="metric-lbl">Fitness Score</div>
-      </div>
-    </div>
-
-    <div class="col-6 col-md-3">
-      <div class="card metric-card p-3 text-center h-100">
-        <div class="metric-val {{ 'text-success' if conflicts == 0 else 'text-danger' }}">
-          {{ conflicts }}
-        </div>
-        <div class="metric-lbl">Total Penalty</div>
-      </div>
-    </div>
-
-    <div class="col-6 col-md-3">
-      <div class="card metric-card p-3 text-center h-100">
-        <div class="metric-val text-info">{{ best_gen }}</div>
-        <div class="metric-lbl">Best at Gen</div>
-      </div>
-    </div>
-
-    <div class="col-6 col-md-3">
-      <div class="card metric-card p-3 text-center h-100">
-        <div class="metric-val text-secondary">{{ total_gen }}</div>
-        <div class="metric-lbl">Generations Run</div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ── Conflict Alert ────────────────────────────────────────────────── -->
+<main>
+  <!-- Status hero -->
   {% if conflicts == 0 %}
-  <div class="alert alert-success d-flex align-items-center gap-2 mb-4" role="alert">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
-         class="bi bi-check-circle-fill flex-shrink-0" viewBox="0 0 16 16">
-      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03
-               a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323
-               a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0
-               1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-    </svg>
-    <div>
-      <strong>Perfect Schedule!</strong> The genetic algorithm found a completely conflict-free timetable.
+  <section class="status-section success" aria-label="Schedule status">
+    <div class="status-icon" aria-hidden="true">&#x2705;</div>
+    <h1 class="status-heading">Conflict-free schedule</h1>
+    <p class="status-sub">{{ schedule|length }} class assignment{{ 's' if schedule|length != 1 }} &middot; No constraints violated</p>
+    <div class="status-actions">
+      <a href="{{ url_for('export') }}" class="btn btn-success btn-lg">
+        &#x2B07; Download CSV
+      </a>
+      <form method="POST" action="{{ url_for('generate') }}" id="rerunForm">
+        <button type="submit" class="btn btn-secondary btn-lg">
+          &#x21BA; Run Again
+        </button>
+      </form>
+      <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
+        &larr; Back
+      </a>
     </div>
-  </div>
+  </section>
   {% else %}
-  <div class="alert alert-warning d-flex align-items-center gap-2 mb-4" role="alert">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
-         class="bi bi-exclamation-triangle-fill flex-shrink-0" viewBox="0 0 16 16">
-      <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233
-               c-.457.778.091 1.767.98 1.767h13.713c.889 0
-               1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0
-               .954.462.9.995l-.35 3.507a.552.552 0 0
-               1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002
-               6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-    </svg>
-    <div>
-      <strong>{{ conflicts }} constraint violation{{ 's' if conflicts != 1 }} remain.</strong>
-      Run the GA again for a better result — stochastic search may converge differently.
+  <section class="status-section warning" aria-label="Schedule status">
+    <div class="status-icon" aria-hidden="true">&#x26A0;&#xFE0F;</div>
+    <h1 class="status-heading">{{ conflicts }} conflict{{ 's' if conflicts != 1 }} remain</h1>
+    <p class="status-sub">The algorithm didn't find a perfect solution this run. Try running again.</p>
+    <div class="status-actions">
+      <form method="POST" action="{{ url_for('generate') }}" id="rerunForm">
+        <button type="submit" class="btn btn-primary btn-lg">
+          &#x21BA; Run Again
+        </button>
+      </form>
+      <a href="{{ url_for('export') }}" class="btn btn-secondary btn-lg">
+        &#x2B07; Download CSV
+      </a>
+      <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">
+        &larr; Back
+      </a>
     </div>
-  </div>
+  </section>
   {% endif %}
 
-  <!-- ── Timetable ─────────────────────────────────────────────────────── -->
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-      <div>
-        <p class="section-heading mb-0">Generated Schedule</p>
-        <h5 class="mb-0 fw-bold">{{ schedule|length }} class assignment{{ 's' if schedule|length != 1 }}</h5>
+  <div class="container" style="padding-top: var(--s8);">
+
+    <!-- Schedule table -->
+    <div class="card mb-6">
+      <div class="card-header">
+        <h2>Generated schedule</h2>
+        {% if conflicts == 0 %}
+        <span class="badge badge-success">No conflicts</span>
+        {% else %}
+        <span class="badge badge-warning">{{ conflicts }} conflict{{ 's' if conflicts != 1 }}</span>
+        {% endif %}
       </div>
-      {% if conflicts == 0 %}
-      <span class="badge bg-success">&#10004; No Conflicts</span>
-      {% endif %}
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table tbl-schedule table-striped table-hover mb-0">
+      <div class="table-wrap">
+        <table class="schedule-table" aria-label="Generated timetable">
           <thead>
             <tr>
-              <th class="ps-3">#</th>
-              <th>Course</th>
-              <th>Credits</th>
-              <th>Teacher</th>
-              <th>Room</th>
-              <th>Day</th>
-              <th>Time</th>
+              <th scope="col">Course</th>
+              <th scope="col">Teacher</th>
+              <th scope="col">Room</th>
+              <th scope="col">Day</th>
+              <th scope="col">Time</th>
             </tr>
           </thead>
           <tbody>
             {% for row in schedule %}
             <tr>
-              <td class="ps-3 text-muted">{{ loop.index }}</td>
-              <td><strong>{{ row.course }}</strong></td>
-              <td>
-                <span class="badge bg-primary bg-opacity-75 rounded-pill">
-                  {{ row.credits }} cr
-                </span>
-              </td>
+              <td class="fw-600">{{ row.course }}</td>
               <td>{{ row.teacher }}</td>
-              <td><span class="text-muted">{{ row.room }}</span></td>
-              <td>
-                {% set day_colors = {
-                  'Monday':    'bg-primary',
-                  'Tuesday':   'bg-success',
-                  'Wednesday': 'bg-warning text-dark',
-                  'Thursday':  'bg-info text-dark',
-                  'Friday':    'bg-danger'
-                } %}
-                <span class="badge {{ day_colors.get(row.day, 'bg-secondary') }}">
-                  {{ row.day }}
-                </span>
-              </td>
-              <td><code>{{ row.time }}</code></td>
+              <td class="td-muted">{{ row.room }}</td>
+              <td><span class="day-tag">{{ row.day }}</span></td>
+              <td class="td-muted" style="font-variant-numeric: tabular-nums;">{{ row.time }}</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
-  </div>
 
-  <!-- ── Fitness Convergence Chart ─────────────────────────────────────── -->
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white py-3">
-      <p class="section-heading mb-0">Convergence</p>
-      <h5 class="mb-0 fw-bold">Fitness over {{ fitness_history|length }} Generations</h5>
-    </div>
-    <div class="card-body">
-      <div id="chartWrap">
-        <canvas id="fitnessChart"></canvas>
+    <!-- Algorithm details (collapsed by default) -->
+    <details class="algo-details mb-6">
+      <summary>Algorithm details</summary>
+      <div class="algo-body">
+        <div class="metrics-row">
+          <div class="metric-box">
+            <div class="metric-val {{ 'success' if conflicts == 0 else 'warning' }}" aria-label="Fitness score: {{ fitness }}">
+              {{ fitness }}
+            </div>
+            <div class="metric-label">Fitness score</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val {{ 'success' if conflicts == 0 else 'warning' }}" aria-label="Total penalty: {{ conflicts }}">
+              {{ conflicts }}
+            </div>
+            <div class="metric-label">Total penalty</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" aria-label="Best at generation: {{ best_gen }}">{{ best_gen }}</div>
+            <div class="metric-label">Best at gen</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" aria-label="Generations run: {{ total_gen }}">{{ total_gen }}</div>
+            <div class="metric-label">Generations run</div>
+          </div>
+        </div>
+        <p class="text-xs text-muted mb-4">
+          Fitness = 1 / (1 + penalty). A score of 1.0 means zero constraint violations.
+          Best fitness {{ fitness }} reached at generation {{ best_gen }} of {{ total_gen }}.
+        </p>
+        <div class="chart-container">
+          <canvas id="fitnessChart"
+                  aria-label="Line chart showing fitness score improvement over {{ total_gen }} generations"
+                  role="img">
+            <p>Fitness started near {{ fitness_history[0] if fitness_history else 0 }} and reached {{ fitness }} by generation {{ best_gen }}.</p>
+          </canvas>
+        </div>
       </div>
-      <p class="text-muted text-center mt-2 mb-0" style="font-size:.8rem;">
-        Best fitness reached <strong>{{ fitness }}</strong> at generation <strong>{{ best_gen }}</strong>
-      </p>
-    </div>
+    </details>
+
   </div>
+</main>
 
-  <!-- ── Actions ───────────────────────────────────────────────────────── -->
-  <div class="d-flex gap-3 flex-wrap align-items-center">
-    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-      &larr; Back to Home
-    </a>
-    <form method="POST" action="{{ url_for('generate') }}" id="rerunForm">
-      <button type="submit" class="btn btn-primary fw-semibold">
-        &#x21BA; Run Again
-      </button>
-    </form>
-    <a href="{{ url_for('export') }}" class="btn btn-success fw-semibold">
-      &#x2B07; Download as CSV
-    </a>
-  </div>
-
-</div><!-- /container -->
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmtPMq+1q8VkQtXKFPOAtNxRTtMB"
-        crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-  // ── Fitness convergence chart ──────────────────────────────────────────────
   const fitnessHistory = {{ fitness_history | tojson }};
   const labels = fitnessHistory.map((_, i) => i + 1);
 
   new Chart(document.getElementById('fitnessChart'), {
     type: 'line',
     data: {
-      labels: labels,
+      labels,
       datasets: [{
         label: 'Best Fitness',
         data: fitnessHistory,
-        borderColor: '#2563eb',
-        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+        borderColor: 'oklch(0.52 0.22 264)',
+        backgroundColor: 'oklch(0.52 0.22 264 / .08)',
         fill: true,
         tension: 0.35,
         pointRadius: fitnessHistory.length > 60 ? 0 : 3,
@@ -282,41 +170,29 @@
         tooltip: {
           callbacks: {
             title: ctx => `Generation ${ctx[0].label}`,
-            label: ctx => `Best Fitness: ${ctx.parsed.y.toFixed(4)}`,
+            label: ctx => `Fitness: ${ctx.parsed.y.toFixed(4)}`,
           }
         }
       },
       scales: {
         x: {
-          title: { display: true, text: 'Generation', font: { size: 12 } },
-          grid: { color: 'rgba(0,0,0,.04)' },
-          ticks: {
-            maxTicksLimit: 10,
-            // B6 fix: Chart.js 4 passes (value, index, ticks).
-            // `value` is the 0-based index into the labels array for this tick —
-            // so labels[value] gives the correct (possibly skipped) generation number.
-            // Using `index` (position among displayed ticks: 0,1,2,...) was wrong:
-            // it always showed 1,2,3,... instead of the actual sparse values.
-            callback: value => labels[value],
-          }
+          title: { display: true, text: 'Generation', font: { size: 11 } },
+          grid: { color: 'oklch(0 0 0 / .04)' },
+          ticks: { maxTicksLimit: 10, callback: value => labels[value] }
         },
         y: {
-          min: 0,
-          max: 1,
-          title: { display: true, text: 'Best Fitness Score', font: { size: 12 } },
-          grid: { color: 'rgba(0,0,0,.06)' },
-          ticks: {
-            callback: v => v.toFixed(2),
-          }
+          min: 0, max: 1,
+          title: { display: true, text: 'Fitness score', font: { size: 11 } },
+          grid: { color: 'oklch(0 0 0 / .05)' },
+          ticks: { callback: v => v.toFixed(2) }
         }
       }
     }
   });
 
-  // ── Spinner on re-run ──────────────────────────────────────────────────────
-  document.getElementById('rerunForm').addEventListener('submit', function () {
+  document.getElementById('rerunForm')?.addEventListener('submit', function () {
     const btn = this.querySelector('button[type=submit]');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Running…';
+    btn.textContent = 'Running…';
     btn.disabled = true;
   });
 </script>
