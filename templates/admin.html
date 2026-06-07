@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timetable GA – Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+<nav>
+  <h1>Timetable Scheduler</h1>
+  <span>Admin Panel</span>
+  <a href="{{ url_for('index') }}" class="nav-link">&larr; Home</a>
+</nav>
+
+<div class="container">
+
+  <!-- Flash messages — auto-escaped by Jinja2, no raw HTML filter -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, msg in messages %}
+    <div class="banner {{ 'success' if category == 'success' else 'warning' }}">
+      {{ msg }}
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- ── Courses ─────────────────────────────────────────────────────────── -->
+  <div class="admin-section">
+    <div class="admin-form card">
+      <h2>Add Course</h2>
+      <form method="POST" action="{{ url_for('admin_add') }}">
+        <input type="hidden" name="table" value="courses" />
+        <div class="field-group">
+          <label>Course Name
+            <input type="text" name="name" placeholder="e.g. Linear Algebra" required />
+          </label>
+          <label>Credit Hours
+            <input type="number" name="credit_hours" min="1" max="6" placeholder="3" required />
+          </label>
+        </div>
+        <button type="submit" class="btn-admin">Add Course</button>
+      </form>
+    </div>
+
+    <div class="admin-table card">
+      <h2>Existing Courses ({{ courses|length }})</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Credits</th></tr></thead>
+        <tbody>
+          {% for c in courses %}
+          <tr>
+            <td>{{ c.id }}</td>
+            <td>{{ c.name }}</td>
+            <td><span class="badge">{{ c.credit_hours }} cr</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Teachers ────────────────────────────────────────────────────────── -->
+  <div class="admin-section">
+    <div class="admin-form card">
+      <h2>Add Teacher</h2>
+      <form method="POST" action="{{ url_for('admin_add') }}">
+        <input type="hidden" name="table" value="teachers" />
+        <div class="field-group">
+          <label>Teacher Name
+            <input type="text" name="name" placeholder="e.g. Dr. Smith" required />
+          </label>
+          <label>Available Slot IDs
+            <input type="text" name="available_slots"
+                   placeholder="e.g. 1,3,5,7" required
+                   pattern="^[\d]+(,[\d]+)*$"
+                   title="Comma-separated timeslot IDs, e.g. 1,3,5" />
+            <small>Comma-separated timeslot IDs from the table on the right</small>
+          </label>
+        </div>
+        <button type="submit" class="btn-admin">Add Teacher</button>
+      </form>
+    </div>
+
+    <div class="admin-table card">
+      <h2>Existing Teachers ({{ teachers|length }})</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Available Slots</th></tr></thead>
+        <tbody>
+          {% for t in teachers %}
+          <tr>
+            <td>{{ t.id }}</td>
+            <td>{{ t.name }}</td>
+            <td><span class="badge">{{ t.available_slots }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Rooms ───────────────────────────────────────────────────────────── -->
+  <div class="admin-section">
+    <div class="admin-form card">
+      <h2>Add Room</h2>
+      <form method="POST" action="{{ url_for('admin_add') }}">
+        <input type="hidden" name="table" value="rooms" />
+        <div class="field-group">
+          <label>Capacity
+            <input type="number" name="capacity" min="1" placeholder="e.g. 40" required />
+          </label>
+        </div>
+        <button type="submit" class="btn-admin">Add Room</button>
+      </form>
+    </div>
+
+    <div class="admin-table card">
+      <h2>Existing Rooms ({{ rooms|length }})</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Capacity</th></tr></thead>
+        <tbody>
+          {% for r in rooms %}
+          <tr>
+            <td>{{ r.id }}</td>
+            <td>{{ r.capacity }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Timeslots ───────────────────────────────────────────────────────── -->
+  <div class="admin-section">
+    <div class="admin-form card">
+      <h2>Add Timeslot</h2>
+      <form method="POST" action="{{ url_for('admin_add') }}">
+        <input type="hidden" name="table" value="timeslots" />
+        <div class="field-group">
+          <label>Day
+            <select name="day" required>
+              <option value="">— select —</option>
+              {% for d in ['Monday','Tuesday','Wednesday','Thursday','Friday'] %}
+              <option value="{{ d }}">{{ d }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Start Time
+            <input type="time" name="start_time" required />
+          </label>
+          <label>End Time
+            <input type="time" name="end_time" required />
+          </label>
+        </div>
+        <button type="submit" class="btn-admin">Add Timeslot</button>
+      </form>
+    </div>
+
+    <div class="admin-table card">
+      <h2>Existing Timeslots ({{ timeslots|length }})</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Day</th><th>Start</th><th>End</th></tr></thead>
+        <tbody>
+          {% for ts in timeslots %}
+          <tr>
+            <td>{{ ts.id }}</td>
+            <td><span class="badge green">{{ ts.day }}</span></td>
+            <td>{{ ts.start_time }}</td>
+            <td>{{ ts.end_time }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
