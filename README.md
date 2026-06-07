@@ -2,6 +2,17 @@
 
 A university timetable scheduler built with Flask and a custom Genetic Algorithm. Given a set of courses, teachers, rooms, and timeslots, it evolves a conflict-free schedule over 100 generations and displays the result as a sortable weekly timetable.
 
+## Screenshots
+
+**Home — data overview and GA trigger**
+![Home page](docs/screenshot_home.png)
+
+**Result — generated timetable with fitness history**
+![Result page](docs/screenshot_result.png)
+
+**Admin — manage courses, teachers, rooms, and timeslots**
+![Admin panel](docs/screenshot_admin.png)
+
 ## Features
 
 - **Genetic Algorithm engine** — tournament selection, single-point crossover, per-gene mutation, elitism
