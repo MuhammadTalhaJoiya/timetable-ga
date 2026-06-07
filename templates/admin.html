@@ -67,8 +67,8 @@
                 <td class="fw-600">{{ c.name }}</td>
                 <td><span class="badge">{{ c.credit_hours }} cr</span></td>
                 <td class="td-actions">
-                  <form method="POST" action="{{ url_for('admin_delete') }}"
-                        onsubmit="return confirm('Delete course \'{{ c.name }}\'? This cannot be undone.')">
+                  <form class="delete-form" method="POST" action="{{ url_for('admin_delete') }}"
+                        data-confirm="Delete &ldquo;{{ c.name }}&rdquo;? This cannot be undone.">
                     <input type="hidden" name="table" value="courses" />
                     <input type="hidden" name="id" value="{{ c.id }}" />
                     <button type="submit" class="btn btn-danger" aria-label="Delete {{ c.name }}">Delete</button>
@@ -119,8 +119,8 @@
                   </span>
                 </td>
                 <td class="td-actions">
-                  <form method="POST" action="{{ url_for('admin_delete') }}"
-                        onsubmit="return confirm('Delete teacher \'{{ t.name }}\'? This cannot be undone.')">
+                  <form class="delete-form" method="POST" action="{{ url_for('admin_delete') }}"
+                        data-confirm="Delete &ldquo;{{ t.name }}&rdquo;? This cannot be undone.">
                     <input type="hidden" name="table" value="teachers" />
                     <input type="hidden" name="id" value="{{ t.id }}" />
                     <button type="submit" class="btn btn-danger" aria-label="Delete {{ t.name }}">Delete</button>
@@ -143,7 +143,7 @@
       <p class="form-hint" style="margin-bottom: var(--s4);">Select a teacher, then check the timeslots they are available for.</p>
 
       <label for="teacherSelect" class="text-sm fw-600" style="display:block; margin-bottom: var(--s2);">Teacher</label>
-      <select id="teacherSelect" class="avail-select" onchange="showAvail(this.value)" aria-label="Select teacher">
+      <select id="teacherSelect" class="avail-select" aria-label="Select teacher">
         {% for t in teachers %}
         <option value="{{ t.id }}">{{ t.name }}</option>
         {% endfor %}
@@ -177,16 +177,6 @@
       </div>
       {% endfor %}
     </div>
-
-    <script>
-      function showAvail(id) {
-        document.querySelectorAll('.avail-panel').forEach(el => el.style.display = 'none');
-        const panel = document.getElementById('avail-' + id);
-        if (panel) panel.style.display = 'block';
-      }
-      const sel = document.getElementById('teacherSelect');
-      if (sel) showAvail(sel.value);
-    </script>
     {% endif %}
 
     <!-- ── Rooms ─────────────────────────────────────────────────────────── -->
@@ -222,8 +212,8 @@
                 <td class="fw-600">{{ r.name }}</td>
                 <td class="td-muted">{{ r.capacity }} seats</td>
                 <td class="td-actions">
-                  <form method="POST" action="{{ url_for('admin_delete') }}"
-                        onsubmit="return confirm('Delete room \'{{ r.name }}\'? This cannot be undone.')">
+                  <form class="delete-form" method="POST" action="{{ url_for('admin_delete') }}"
+                        data-confirm="Delete room &ldquo;{{ r.name }}&rdquo;? This cannot be undone.">
                     <input type="hidden" name="table" value="rooms" />
                     <input type="hidden" name="id" value="{{ r.id }}" />
                     <button type="submit" class="btn btn-danger" aria-label="Delete room {{ r.name }}">Delete</button>
@@ -282,8 +272,8 @@
                 <td class="td-muted" style="font-variant-numeric: tabular-nums;">{{ ts.start_time }}</td>
                 <td class="td-muted" style="font-variant-numeric: tabular-nums;">{{ ts.end_time }}</td>
                 <td class="td-actions">
-                  <form method="POST" action="{{ url_for('admin_delete') }}"
-                        onsubmit="return confirm('Delete timeslot {{ ts.day }} {{ ts.start_time }}–{{ ts.end_time }}? This cannot be undone.')">
+                  <form class="delete-form" method="POST" action="{{ url_for('admin_delete') }}"
+                        data-confirm="Delete {{ ts.day }} {{ ts.start_time }}–{{ ts.end_time }}? This cannot be undone.">
                     <input type="hidden" name="table" value="timeslots" />
                     <input type="hidden" name="id" value="{{ ts.id }}" />
                     <button type="submit" class="btn btn-danger" aria-label="Delete timeslot {{ ts.day }} {{ ts.start_time }}">Delete</button>
@@ -302,20 +292,27 @@
   </div><!-- /container -->
 </main>
 
-<style>
-  /* Screen-reader only utility */
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+<script>
+  // Availability panel switcher
+  const teacherSel = document.getElementById('teacherSelect');
+  function showAvail(id) {
+    document.querySelectorAll('.avail-panel').forEach(el => el.style.display = 'none');
+    const panel = document.getElementById('avail-' + id);
+    if (panel) panel.style.display = 'block';
   }
-</style>
+  if (teacherSel) {
+    teacherSel.addEventListener('change', () => showAvail(teacherSel.value));
+    showAvail(teacherSel.value);
+  }
+
+  // Safe confirm dialogs — reads text from data-confirm, no JS string injection
+  document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', e => {
+      const msg = form.dataset.confirm || 'Delete this record? This cannot be undone.';
+      if (!confirm(msg)) e.preventDefault();
+    });
+  });
+</script>
 
 </body>
 </html>
